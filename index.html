@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Polaroid Memories</title>
+<meta name="theme-color" content="#b1a69a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📷%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Figtree:wght@400;500;700&family=Fredoka:wght@500;600&family=Special+Elite&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1"></script>
+<style>
+:root{--taupe:#b1a69a;--paper:#fdfcfa;--win:#ece8e1;--ink:#26221f;--cobalt:#2f4b8a;--line:#c9c1b5;--bad:#a3362b}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--taupe);color:var(--ink);font:16px/1.45 "Figtree",system-ui,sans-serif;min-height:100vh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
+.boot{padding:40px;text-align:center}
+.wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;gap:18px}
+.polaroid{width:100%;max-width:380px;background:var(--paper);padding:16px 16px 0;box-shadow:0 18px 40px -12px rgba(40,30,20,.5),0 2px 4px rgba(40,30,20,.12);transform:rotate(-1.4deg)}
+.polaroid .win{background:var(--win);padding:16px}
+.strip{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0 18px}
+.brand,.cap{font-family:"Caveat",cursive;font-weight:700;font-size:40px;line-height:1;margin:0}
+.fine{max-width:340px;text-align:center;font-size:14px;margin:0}
+.tabs{display:flex;background:#d9d3c8;border-radius:10px;padding:4px;gap:4px;margin-bottom:14px}
+.tabs button{flex:1;min-height:42px;border:0;border-radius:7px;background:none;cursor:pointer;font-weight:500}
+.tabs [aria-selected=true]{background:var(--paper);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.field{margin-bottom:12px}
+label,legend{display:block;font-weight:700;font-size:14px;margin-bottom:5px;padding:0}
+input[type=text],input[type=password],input[type=number]{width:100%;min-height:48px;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff}
+.hint{font-size:13px;margin:4px 0 0;color:#5a5249}
+.row{display:flex;gap:8px}.row input{flex:1}
+.btn{min-height:48px;padding:0 18px;border-radius:10px;border:1.5px solid var(--ink);background:var(--paper);cursor:pointer;font-weight:700}
+.btn.primary{background:var(--cobalt);border-color:var(--cobalt);color:#fff}
+.btn.ghost{border-color:transparent;background:none;text-decoration:underline}
+.btn:disabled{opacity:.6;cursor:wait}
+.msg{min-height:22px;margin:0 0 8px;font-size:14px;font-weight:500}.msg.err{color:var(--bad)}
+.top{max-width:520px;margin:0 auto;padding:16px;display:flex;justify-content:space-between;align-items:center}
+.hello{font:700 34px/1 "Caveat",cursive}.who{font-size:14px}
+.main{max-width:520px;margin:0 auto;padding:8px 16px 48px}
+.empty{margin:20px auto;transform:rotate(1.6deg)}
+.empty .win{border:2px dashed #9a9084;text-align:center;padding:36px 16px}
+.empty p{margin:0 0 14px}
+.memory{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:22px;box-shadow:0 10px 26px -14px rgba(40,30,20,.55)}
+.memory canvas{display:block;width:100%;height:auto;border-radius:6px}
+fieldset{border:0;padding:0;margin:14px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:42px;padding:0 14px;border:1.5px solid var(--line);border-radius:999px;background:#fff;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.sw{width:42px;height:42px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--line);cursor:pointer;padding:0}
+.sw[aria-pressed=true]{box-shadow:0 0 0 3px var(--cobalt)}
+input[type=range]{width:100%;accent-color:var(--cobalt);min-height:36px}
+.acts{display:flex;gap:10px;margin-top:16px}.acts .primary{flex:1}
+.status{font-size:13px;margin:8px 0 0;min-height:18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<p id="boot" class="boot">Loading…</p>
+
+<main id="authScreen" class="wrap" hidden>
+  <div class="polaroid">
+    <div class="win">
+      <div class="tabs" role="tablist">
+        <button type="button" id="tabLogin" role="tab" aria-selected="true">Log in</button>
+        <button type="button" id="tabSignup" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="authForm" novalidate>
+        <div class="field" id="nameF" hidden><label for="name">Name</label><input id="name" type="text" autocomplete="name" maxlength="40"></div>
+        <div class="field" id="ageF" hidden><label for="age">Age</label><input id="age" type="number" inputmode="numeric" min="1" max="120"></div>
+        <div class="field"><label for="uid">ID</label><input id="uid" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"><p class="hint" id="idHint" hidden>3 to 20 letters, numbers or underscores.</p></div>
+        <div class="field"><label for="pw">Password</label><div class="row"><input id="pw" type="password" autocomplete="current-password"><button type="button" class="btn" id="pwT">Show</button></div><p class="hint" id="pwHint" hidden>At least 6 characters.</p></div>
+        <p id="authMsg" class="msg" role="alert"></p>
+        <button type="submit" id="authBtn" class="btn primary" style="width:100%">Log in</button>
+      </form>
+    </div>
+    <div class="strip"><h1 class="brand">Polaroid Memories</h1>
+      <svg width="26" height="24" viewBox="0 0 26 24" fill="none" stroke="#26221f" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M13 22C4 15 2 11 2 7.5A5.3 5.3 0 0 1 13 5a5.3 5.3 0 0 1 11 2.500C24 11 22 15 13 22Z"/></svg></div>
+  </div>
+  <p class="fine">Your photos stay on your phone. We only store your name, age, ID and password.</p>
+</main>
+
+<div id="appScreen" hidden>
+  <header class="top">
+    <div><div class="hello" id="hello"></div><div class="who" id="who"></div></div>
+    <button type="button" class="btn ghost" id="logout">Log out</button>
+  </header>
+  <main class="main">
+    <section id="empty" class="polaroid empty">
+      <div class="win"><p><strong>Pick a photo to begin</strong></p><p>Choose one or many. Each becomes its own polaroid.</p><button type="button" class="btn primary" id="pick">Choose photos</button></div>
+      <div class="strip"><span class="cap">Your words go here</span></div>
+    </section>
+    <p id="notice" class="msg err" role="status"></p>
+    <div id="cards"></div>
+    <div id="more" hidden style="text-align:center"><button type="button" class="btn" id="pick2">Add more photos</button></div>
+    <input id="file" type="file" accept="image/*" multiple hidden>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const URL_="https://guqsxfoqzslksxyidgxe.supabase.co";
+const KEY="sb_publishable_3icUi4BsbKfwoqeiqr0DFQ_i3VMB-IJ";
+const DOMAIN="polaroid-memories.app", MAX=12;
+const $=id=>document.getElementById(id);
+if(!window.supabase){$("boot").textContent="Could not load the sign-in tool. Check your internet and refresh.";return;}
+const sb=window.supabase.createClient(URL_,KEY);
+
+/* ---------- auth ---------- */
+let mode="login";
+function msg(t,err){const m=$("authMsg");m.textContent=t||"";m.className="msg"+(err?" err":"");}
+function setMode(m){
+  mode=m;const su=m==="signup";
+  $("tabLogin").setAttribute("aria-selected",String(!su));$("tabSignup").setAttribute("aria-selected",String(su));
+  ["nameF","ageF","idHint","pwHint"].forEach(i=>$(i).hidden=!su);
+  $("authBtn").textContent=su?"Create account":"Log in";
+  $("pw").autocomplete=su?"new-password":"current-password";msg("");
+}
+$("tabLogin").onclick=()=>setMode("login");$("tabSignup").onclick=()=>setMode("signup");
+$("pwT").onclick=()=>{const p=$("pw"),s=p.type==="password";p.type=s?"text":"password";$("pwT").textContent=s?"Hide":"Show";};
+function nice(e){
+  const t=((e&&e.message)||"").toLowerCase();
+  if(t.includes("already")&&t.includes("registered"))return "That ID is taken. Try another one.";
+  if(t.includes("invalid login"))return "Wrong ID or password. Check both and try again.";
+  if(t.includes("database error"))return "That ID may be taken, or the details are not valid. Try a different ID.";
+  if(t.includes("fetch")||t.includes("network"))return "No connection. Check your internet and try again.";
+  if(t.includes("rate limit")||t.includes("too many"))return "Too many tries. Wait a minute and try again.";
+  return "Something went wrong. Please try again.";
+}
+$("authForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();msg("");
+  const id=$("uid").value.trim().toLowerCase(),pw=$("pw").value,su=mode==="signup";
+  const name=$("name").value.trim(),age=parseInt($("age").value,10);
+  if(su&&!name)return msg("Enter your name.",1);
+  if(su&&!(age>=1&&age<=120))return msg("Enter an age between 1 and 120.",1);
+  if(!/^[a-z0-9_]{3,20}$/.test(id))return msg("Your ID must be 3 to 20 letters, numbers or underscores.",1);
+  if(pw.length<6)return msg("Your password needs at least 6 characters.",1);
+  const email=id+"@"+DOMAIN,b=$("authBtn"),lab=b.textContent;
+  b.disabled=true;b.textContent=su?"Creating account…":"Logging in…";
+  try{
+    let r;
+    if(su){
+      r=await sb.auth.signUp({email,password:pw,options:{data:{user_id:id,name,age}}});
+      if(r.error)throw r.error;
+      if(!r.data.session){msg("Account created. Turn off “Confirm email” in Supabase, then log in.",1);return;}
+    }else{
+      r=await sb.auth.signInWithPassword({email,password:pw});
+      if(r.error)throw r.error;
+    }
+    await enter(r.data.user);
+  }catch(e){msg(nice(e),1);}
+  finally{b.disabled=false;b.textContent=lab;}
+});
+async function enter(user){
+  const md=user.user_metadata||{};let name=md.name||"",uid=md.user_id||"";
+  try{const r=await sb.from("profiles").select("name,user_id").eq("id",user.id).maybeSingle();
+    if(r.data){name=r.data.name;uid=r.data.user_id;}}catch(e){}
+  $("hello").textContent=name?"Hi, "+name:"Hi there";$("who").textContent=uid?"@"+uid:"";
+  $("boot").hidden=true;$("authScreen").hidden=true;$("appScreen").hidden=false;
+}
+$("logout").onclick=async()=>{
+  try{await sb.auth.signOut();}catch(e){}
+  photos.length=0;$("cards").textContent="";list();
+  $("authForm").reset();setMode("login");$("appScreen").hidden=true;$("authScreen").hidden=false;
+};
+
+/* ---------- polaroid maker ---------- */
+const STY={
+ hand:{l:"Handwritten",f:'"Caveat",cursive',w:["700","500"],z:[84,46],c:22},
+ type:{l:"Typewriter",f:'"Special Elite","Courier New",monospace',w:["400","400"],z:[56,32],c:15},
+ play:{l:"Playful",f:'"Fredoka",sans-serif',w:["600","500"],z:[66,36],c:16},
+ eleg:{l:"Elegant",f:'"Cormorant Garamond",Georgia,serif',w:["italic 600","italic 500"],z:[74,40],c:18}
+};
+const INKS=[["Ink","#26221f"],["Brown","#6b4a35"],["Rose","#bf4a63"],["Green","#4f7550"],["Blue","#2f4b8a"]];
+const BGS=[["Taupe","#b1a69a"],["Linen","#e9e2d6"],["Blush","#e8c5c0"],["Sage","#b7c3aa"],["Sky","#b4c8dd"],["Charcoal","#37332f"]];
+const DECO=[["heart","♡ Heart"],["star","☆ Star"],["sparkle","✦ Sparkle"],["none","None"]];
+const photos=[];let nid=1;
+const fonts=Promise.all(['700 30px "Caveat"','500 30px "Caveat"','30px "Special Elite"','600 30px "Fredoka"','500 30px "Fredoka"','italic 600 30px "Cormorant Garamond"','italic 500 30px "Cormorant Garamond"'].map(f=>document.fonts.load(f,"Aa"))).catch(()=>{});
+fonts.then(()=>photos.forEach(render));
+
+function deco(x,k,cx,cy,r,col){
+  x.save();x.strokeStyle=col;x.lineWidth=Math.max(3,r*.14);x.lineJoin=x.lineCap="round";x.beginPath();
+  if(k==="heart"){cy-=r*.1;x.moveTo(cx,cy+r*.9);x.bezierCurveTo(cx-r*1.6,cy-r*.2,cx-r*.7,cy-r*1.2,cx,cy-r*.4);x.bezierCurveTo(cx+r*.7,cy-r*1.2,cx+r*1.6,cy-r*.2,cx,cy+r*.9);}
+  else if(k==="star"){for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,d=i%2?r*.48:r*1.05;x[i?"lineTo":"moveTo"](cx+Math.cos(a)*d,cy+Math.sin(a)*d);}}
+  else{x.moveTo(cx,cy-r);x.quadraticCurveTo(cx,cy,cx+r,cy);x.quadraticCurveTo(cx,cy,cx,cy+r);x.quadraticCurveTo(cx,cy,cx-r,cy);x.quadraticCurveTo(cx,cy,cx,cy-r);}
+  x.closePath();x.stroke();x.restore();
+}
+function fit(x,t,font,s,maxW){x.font=font(s);while(s>24&&x.measureText(t).width>maxW){s-=2;x.font=font(s);}return s;}
+function render(p){
+  const c=p.canvas,x=c.getContext("2d"),CW=1200,CH=1400,W=900,H=1080,M=50,PW=800,PH=780;
+  if(c.width!==CW){c.width=CW;c.height=CH;}
+  x.fillStyle=p.bg;x.fillRect(0,0,CW,CH);
+  x.save();x.translate(CW/2,CH/2);x.rotate(p.tilt*Math.PI/180);x.translate(-W/2,-H/2);
+  x.shadowColor="rgba(20,12,4,.32)";x.shadowBlur=46;x.shadowOffsetY=20;x.fillStyle="#fffefc";x.fillRect(0,0,W,H);
+  x.shadowColor="transparent";x.shadowBlur=0;x.shadowOffsetY=0;
+  x.save();x.beginPath();x.rect(M,M,PW,PH);x.clip();
+  const s=Math.max(PW/p.src.width,PH/p.src.height),dw=p.src.width*s,dh=p.src.height*s;
+  x.drawImage(p.src,M+(PW-dw)/2,M+(PH-dh)/2,dw,dh);x.restore();
+  x.strokeStyle="rgba(0,0,0,.08)";x.lineWidth=2;x.strokeRect(M,M,PW,PH);
+  const st=STY[p.font],mf=z=>st.w[0]+" "+z+"px "+st.f,sf=z=>st.w[1]+" "+z+"px "+st.f,top=M+PH,sh=H-top,it=[],txt=p.main||p.sub;
+  if(p.deco!=="none")it.push({k:"d",h:txt?48:76});
+  if(p.main){const z=fit(x,p.main,mf,st.z[0],780);it.push({k:"m",z,h:z*.95,t:p.main,f:mf});}
+  if(p.sub){const z=fit(x,p.sub,sf,st.z[1],780);it.push({k:"s",z,h:z*.95,t:p.sub,f:sf});}
+  let y=top+(sh-(it.reduce((a,i)=>a+i.h,0)+12*Math.max(0,it.length-1)))/2;
+  x.fillStyle=p.color;x.textAlign="center";x.textBaseline="middle";
+  it.forEach(i=>{
+    if(i.k==="d")deco(x,p.deco,W/2,y+i.h/2,i.h*.46,p.color);
+    else{x.font=i.f(i.z);x.fillText(i.t,W/2,y+i.h/2);}
+    y+=i.h+12;
+  });
+  x.restore();
+}
+function sched(p){if(p.raf)return;p.raf=requestAnimationFrame(()=>{p.raf=0;render(p);});}
+function h(tag,props,...kids){
+  const n=document.createElement(tag);
+  for(const k in props||{}){const v=props[k];if(k==="text")n.textContent=v;else if(k==="class")n.className=v;else if(k.startsWith("on"))n.addEventListener(k.slice(2),v);else n.setAttribute(k,v);}
+  kids.forEach(c=>c&&n.append(c));return n;
+}
+function group(label,opts,get,set,dress,cls){
+  const row=h("div",{class:"chips"}),bs=[];
+  opts.forEach((o,i)=>{
+    const b=h("button",{type:"button",class:cls,"aria-pressed":String(get()===o[0]),...(cls==="sw"?{"aria-label":o[0]}:{text:o[1]})});
+    dress&&dress(b,o);
+    b.onclick=()=>{set(o[cls==="sw"?1:0]);bs.forEach((q,j)=>q.setAttribute("aria-pressed",String(j===i)));};
+    bs.push(b);row.append(b);
+  });
+  return h("fieldset",{},h("legend",{text:label}),row);
+}
+function slider(p,key,label,min,max){
+  const id=key+p.id,r=h("input",{type:"range",id,min,max,step:"1",value:String(p[key])});
+  r.oninput=()=>{p[key]=Number(r.value);sched(p);};
+  return h("fieldset",{},h("label",{for:id,text:label}),r);
+}
+function card(p){
+  const st=h("p",{class:"status","aria-live":"polite"});
+  const inp=(key,label,ph,max)=>{const i=h("input",{type:"text",id:key+p.id,maxlength:max,placeholder:ph,autocomplete:"off"});
+    i.oninput=()=>{p[key]=i.value.trim();sched(p);};return h("div",{class:"field",style:"margin-top:14px"},h("label",{for:key+p.id,text:label}),i);};
+  const el=h("section",{class:"memory"},p.canvas,
+    inp("main","Your words","Goa trip with the gang","36"),
+    inp("sub","Date or place (small line)","March 2026","44"),
+    group("Style",Object.keys(STY).map(k=>[k,STY[k].l]),()=>p.font,v=>{p.font=v;sched(p);},(b,o)=>{b.style.fontFamily=STY[o[0]].f;b.style.fontSize=STY[o[0]].c+"px";},"chip"),
+    group("Decoration",DECO,()=>p.deco,v=>{p.deco=v;sched(p);},null,"chip"),
+    group("Text color",INKS,()=>p.color,v=>{p.color=v;sched(p);},(b,o)=>b.style.background=o[1],"sw"),
+    group("Background",BGS,()=>p.bg,v=>{p.bg=v;sched(p);},(b,o)=>b.style.background=o[1],"sw"),
+    slider(p,"tilt","Tilt",-10,10),
+    h("div",{class:"acts"},
+      h("button",{type:"button",class:"btn primary",text:"Save to phone",onclick:()=>save(p,st)}),
+      h("button",{type:"button",class:"btn",text:"Remove",onclick:()=>{el.remove();photos.splice(photos.indexOf(p),1);list();}})),
+    st);
+  return el;
+}
+function list(){$("empty").hidden=photos.length>0;$("more").hidden=!photos.length;}
+function note(t){$("notice").textContent=t||"";}
+function load(file){
+  return new Promise((ok,no)=>{
+    const u=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{const k=Math.min(1,1800/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");
+      c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c);};
+    im.onerror=()=>{URL.revokeObjectURL(u);no();};im.src=u;
+  });
+}
+$("pick").onclick=$("pick2").onclick=()=>$("file").click();
+$("file").onchange=async e=>{
+  const fs=[...e.target.files];e.target.value="";note("");
+  for(const f of fs){
+    if(photos.length>=MAX){note("You can work on "+MAX+" photos at a time. Save or remove some to add more.");break;}
+    try{
+      const p={id:nid++,src:await load(f),main:"",sub:"",font:"hand",deco:"heart",color:INKS[0][1],bg:BGS[0][1],tilt:(photos.length%2?1:-1)*(3+Math.floor(Math.random()*3)),canvas:document.createElement("canvas"),raf:0};
+      photos.push(p);$("cards").append(card(p));render(p);
+    }catch(err){note("One photo could not be opened. Try a JPG or PNG.");}
+  }
+  list();
+};
+async function save(p,st){
+  render(p);
+  const blob=await new Promise(r=>p.canvas.toBlob(r,"image/jpeg",.92));
+  if(!blob){st.textContent="Could not save this one. Try again.";return;}
+  const name="polaroid-"+p.id+".jpg",file=new File([blob],name,{type:"image/jpeg"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file]});st.textContent="Shared. On iPhone, choose “Save Image” to keep it.";return;}
+    catch(e){if(e.name==="AbortError")return;}
+  }
+  const u=URL.createObjectURL(blob),a=h("a",{href:u,download:name});
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+  st.textContent="Saved to your downloads.";
+}
+
+/* ---------- start ---------- */
+setMode("login");
+(async()=>{
+  try{const r=await sb.auth.getSession();if(r.data.session){await enter(r.data.session.user);return;}}catch(e){}
+  $("boot").hidden=true;$("authScreen").hidden=false;
+})();
+})();
+</script>
+</body>
+</html>
